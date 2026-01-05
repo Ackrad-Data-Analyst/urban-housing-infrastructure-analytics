@@ -174,3 +174,76 @@ This project reflects how real infrastructure and policy decisions are made:
 * Outputs are designed for planners, analysts, and decision-makers
 
 It demonstrates how engineering context and data analysis work together to support targeted, evidence-based investment decisions.
+
+
+## 📊 9. Dashboard Views & Visual Evidence
+
+The following screenshots are taken directly from the Tableau dashboard built for this project.
+Each view answers a specific **planning, investment, or policy question**.
+
+---
+
+### 🟥 Counties with Poor Infrastructure Coverage
+
+*Facilities per 100,000 residents*
+
+This view highlights counties where public facilities lag population size, signaling potential service gaps.
+
+![Facilities per 100k](images/facilities_per_100k_map.png)
+
+---
+
+### 🏥 Healthcare Access by County
+
+*Hospitals per 100,000 residents*
+
+Used to identify regions with limited hospital access relative to population.
+
+![Hospitals per 100k](images/hospitals_per_100k_map.png)
+
+---
+
+### ⚠️ Housing Stress & Socioeconomic Pressure
+
+*Severe housing problems combined with unemployment*
+
+This view isolates counties experiencing both housing strain and economic pressure.
+
+![Housing stress](images/housing_stress_map.png)
+
+---
+
+### 🔴 Investment Priority Map
+
+*Composite infrastructure investment score*
+
+Counties in red represent the **highest priority** for infrastructure and housing investment based on combined indicators.
+
+![Investment priority](images/investment_priority_map.png)
+
+---
+
+### 🟢 Counties with Strong Infrastructure Coverage
+
+*Well-served, lower-risk regions*
+
+Used as a benchmark to understand what “adequate coverage” looks like.
+
+![Good facilities](images/good_facilities_map.png)
+
+---
+
+### 🧭 How to Read the Maps
+
+* **Red** → Higher need / higher investment priority
+* **Green** → Better infrastructure coverage
+* Metrics are **population-normalized** to ensure fair county comparisons
+* All scores are derived directly from the dataset in `data/`
+
+---
+
+### 🔗 Files Referenced
+
+* 📂 Dataset: [`data/ca_urban_infrastructure_master_2025.csv`](data/ca_urban_infrastructure_master_2025.csv)
+* 📂 SQL logic: [`sql/analysis_queries.sql`](sql/analysis_queries.sql)
+* 📂 Visuals: [`images/`](images/)
