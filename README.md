@@ -1,204 +1,176 @@
----
-
 # Urban Housing & Infrastructure Demand Analytics (California)
 
-This project analyzes **housing stress and access to essential infrastructure across California counties** using real public datasets and spatial analysis in Tableau.
+This project analyzes housing stress and infrastructure availability across California counties using real public data.
 
-The goal was to identify **where infrastructure investment would have the highest impact**, based on population pressure, housing conditions, employment stress, and access to facilities.
+The objective is practical and decision-focused:
 
-**Focus areas:** housing, healthcare access, education infrastructure
-**Tools:** Tableau, Excel, SQL-style data modeling
-**Geography:** California (county level)
+> Identify counties that are under-served in housing and public infrastructure and rank them for targeted investment.
 
----
-
-## Repository Overview
-
-```
-├─ data/
-│  ├─ raw/                  # original public datasets
-│  └─ processed/            # cleaned & merged dataset
-│
-├─ tableau/                 # Tableau workbook
-├─ images/                  # dashboard screenshots
-├─ sql/                     # logical schema & queries
-└─ README.md
-```
-
-Key links:
-
-* 📊 **Clean dataset:**
-  [`data/processed/ca_urban_infrastructure_master_2025.csv`](data/processed/ca_urban_infrastructure_master_2025.csv)
-
-* 📈 **Tableau dashboard:**
-  [`tableau/urban_infrastructure_dashboard.twbx`](tableau/urban_infrastructure_dashboard.twbx)
-
-* 🗺️ **Visuals used below:**
-  [`images/`](images/)
+**Target roles:** Data Analyst · Infrastructure Analyst · Urban / Transport Analyst  
+**Relevant industries:** Civil engineering, real estate, government, urban planning, infrastructure finance
 
 ---
 
-## 1. Business Problem
+## 1. Problem Context
 
-State and local governments face a recurring challenge:
+Infrastructure planning decisions are usually constrained by budget, land, and political trade-offs.
 
-* Population grows unevenly
-* Infrastructure investment lags or clusters
-* Housing stress rises in specific regions
+In practice, planners and policymakers must answer:
 
-This project answers three operational questions:
+- Where does population growth outpace housing supply?
+- Which areas lack basic facilities relative to population size?
+- Where will infrastructure investment have the highest impact?
 
-1. **Which counties are most under-served relative to population?**
-2. **Where do housing stress and weak infrastructure overlap?**
-3. **Which counties should be prioritized first when funding is limited?**
+This project builds a **county-level analytical framework** to support those decisions using population-normalized indicators and spatial analysis.
 
 ---
 
-## 2. Data Sources (Public)
+## 2. Data Used
 
-All datasets are publicly available and recent:
+**Primary dataset (cleaned & analysis-ready):**  
+📄 [`data/ca_urban_infrastructure_master_2025.csv`](data/ca_urban_infrastructure_master_2025.csv)
 
-* **Population & Housing**
+**Key fields:**
+- `county`
+- `population`
+- `facilities_per_100k`
+- `hospitals_per_100k`
+- `unemployment_rate`
+- `severe_housing_problems_pct`
 
-  * County Health Rankings (2025)
-  * Severe Housing Problems (%)
+The dataset was assembled by merging publicly available sources on:
+- labor force & unemployment,
+- housing conditions,
+- healthcare facilities,
+- county-level demographics.
 
-* **Employment**
-
-  * California Labor Force & Unemployment Statistics
-
-* **Healthcare Infrastructure**
-
-  * California Health Facilities datasets
-  * Aggregated to hospitals per county
-
-* **Education Infrastructure**
-
-  * NCES / ElSi public school data
-  * Aggregated to county level
-
-Raw files are preserved in [`data/raw/`](data/raw/)
-Final merged dataset is in [`data/processed/`](data/processed/)
+All infrastructure metrics were normalized per capita to allow fair comparison across counties.
 
 ---
 
-## 3. Data Preparation & Merging
+## 3. Core Metrics & Logic
 
-Steps performed:
+To move beyond raw counts, the following indicators were calculated:
 
-1. Standardized county names and identifiers
-2. Aggregated facilities and hospitals by county
-3. Normalized infrastructure metrics per population
-4. Merged datasets into a single county-level table
+- **Facilities per 100,000 residents**
+- **Hospitals per 100,000 residents**
+- **Unemployment rate**
+- **Severe housing problems (% of households)**
 
-Final dataset columns include:
-
-* `County`
-* `Population`
-* `Facilities Per 100K`
-* `Hospitals Per 100K`
-* `Unemployment Rate`
-* `Severe Housing Problems (%)`
+These metrics form the basis of both the SQL analysis and the Tableau GIS dashboard.
 
 ---
 
-## 4. Key Calculations
+## 4. Analytical Questions (SQL Logic)
 
-All metrics were designed to allow **fair comparison across counties**.
+The same questions answered visually in Tableau can be expressed directly at the data layer.
 
-### Infrastructure Normalization
+### Counties with weakest infrastructure coverage
+```sql
+SELECT
+    county,
+    population,
+    facilities_per_100k,
+    hospitals_per_100k
+FROM ca_urban_infrastructure_master_2025
+ORDER BY facilities_per_100k ASC
+LIMIT 10;
+````
 
-```
-Facilities Per 100K = (Facilities / Population) * 100,000
-Hospitals Per 100K  = (Hospitals / Population) * 100,000
+---
+
+### Counties facing both housing stress and unemployment pressure
+
+```sql
+SELECT
+    county,
+    unemployment_rate,
+    severe_housing_problems_pct
+FROM ca_urban_infrastructure_master_2025
+WHERE unemployment_rate > (
+    SELECT AVG(unemployment_rate)
+    FROM ca_urban_infrastructure_master_2025
+)
+AND severe_housing_problems_pct > (
+    SELECT AVG(severe_housing_problems_pct)
+    FROM ca_urban_infrastructure_master_2025
+)
+ORDER BY severe_housing_problems_pct DESC;
 ```
 
-### Investment Priority Score (Tableau calculated field)
+---
 
-This score combines multiple stress indicators into one ranking metric:
+### Investment priority ranking (composite score)
 
+Counties were ranked using a weighted score reflecting infrastructure scarcity and social stress:
+
+```sql
+SELECT
+    county,
+    (
+        (1 / facilities_per_100k) * 0.4 +
+        unemployment_rate * 0.3 +
+        severe_housing_problems_pct * 0.3
+    ) AS investment_priority_score
+FROM ca_urban_infrastructure_master_2025
+ORDER BY investment_priority_score DESC
+LIMIT 10;
 ```
-(1 / [Facilities Per 100K]) * 0.4
-+ [Unemployment Rate] * 0.3
-+ [Severe Housing Problems (%)] * 0.3
-```
 
-* Higher score = higher investment need
-* Used only for **ranking and comparison**, not absolute judgment
+This logic mirrors the calculated fields used in the Tableau dashboard.
+
+📂 Full SQL scripts:
+[`sql/analysis_queries.sql`](sql/analysis_queries.sql)
 
 ---
 
-## 5. Tableau Dashboard & Maps
+## 5. GIS & Dashboard Analysis (Tableau)
 
-### Investment Priority Map
+The analysis was visualized using **Tableau GIS mapping** at the county level.
 
-![Investment Priority Map](images/investment_priority_map.png)
+📂 Screenshots:
+[`images/`](images/)
 
-* Red counties indicate **highest priority for investment**
-* Green counties indicate **lower relative need**
+### Key views included:
 
-This view is meant for **decision-makers**, not analysts.
+* **Facilities per capita map** – highlights under-served counties
+* **Hospitals per capita map** – reveals healthcare access gaps
+* **Investment priority map** – composite score for capital planning
+* **High-performing counties view** – identifies infrastructure-resilient regions
 
----
+Color scales were intentionally chosen so that:
 
-### Facilities per 100k Residents
-
-![Facilities per 100k](images/facilities_per_100k_map.png)
-
-Shows how unevenly basic services are distributed relative to population.
-
----
-
-### Hospitals per 100k Residents
-
-![Hospitals per 100k](images/hospitals_per_100k_map.png)
-
-Highlights healthcare access gaps that are not obvious from raw counts.
+* **Red = higher need / higher priority**
+* **Green = better infrastructure coverage**
 
 ---
 
-### Dashboard Overview
+## 6. Key Insights
 
-![Dashboard Overview](images/dashboard_overview.png)
-
-The dashboard includes:
-
-* County-level tooltips
-* Interactive filtering
-* Clear legends for non-technical users
+* Infrastructure availability varies significantly even among counties with similar population sizes.
+* Several counties show **high housing stress despite moderate employment**, suggesting infrastructure—not jobs—is the primary constraint.
+* Population size alone does not guarantee adequate service coverage.
+* A small number of counties consistently rank high in the investment priority score, making them strong candidates for near-term intervention.
 
 ---
 
-## 6. Insights
+## 7. Tools & Skills Demonstrated
 
-Key observations from the analysis:
-
-* Several counties show **high housing stress and weak infrastructure simultaneously**
-* Normalized metrics reveal gaps hidden by population size
-* Some mid-sized counties face **greater relative strain** than large metro areas
-
-This type of analysis supports:
-
-* Infrastructure prioritization
-* Grant allocation
-* Capital planning decisions
+* SQL analytical reasoning
+* Data cleaning & normalization
+* GIS mapping & spatial analysis (Tableau)
+* Infrastructure and housing domain analysis
+* Translating data into planning and policy insights
 
 ---
 
-## 7. Why This Project Belongs in My Portfolio
+## 8. Why This Project Matters to me to be on my portfolio?
 
-This project reflects how I approach real analytical work:
+This project reflects how real infrastructure and policy decisions are made:
 
-* Start from a **planning or engineering question**
-* Use **real, imperfect data**
-* Normalize metrics to avoid misleading conclusions
-* Build visuals that support **policy and investment decisions**
+* Metrics are normalized, not absolute
+* Spatial patterns drive prioritization
+* Trade-offs are explicit and measurable
+* Outputs are designed for planners, analysts, and decision-makers
 
-It aligns directly with roles in:
-
-* Urban & infrastructure analytics
-* Public-sector data analysis
-* Real estate & development analytics
-* Operations and planning teams
-
----
+It demonstrates how engineering context and data analysis work together to support targeted, evidence-based investment decisions.
